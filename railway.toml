@@ -1,0 +1,10 @@
+# Railway all-in-one deploy (Option 2).
+# Create two services from this repo:
+#   1. web    → Dockerfile.web    (+ Postgres + Redis plugins, healthcheck /api/health)
+#   2. worker → Dockerfile.worker (+ same plugins)
+# Set DATABASE_URL / REDIS_URL / AUTH_SECRET on both services.
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": { "builder": "DOCKERFILE", "dockerfilePath": "Dockerfile.web" },
+  "deploy": { "healthcheckPath": "/api/health", "healthcheckTimeout": 60, "restartPolicyType": "ON_FAILURE" }
+}

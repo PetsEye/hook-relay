@@ -1,0 +1,20 @@
+{
+  "name": "@hook-relay/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": { "hookrelay": "./dist/index.js" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "echo 'lint: no rules yet'",
+    "dev": "tsx src/index.ts --help"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.3"
+  }
+}

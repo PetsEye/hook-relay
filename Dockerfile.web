@@ -1,0 +1,25 @@
+FROM node:20-alpine AS base
+RUN corepack enable
+WORKDIR /app
+
+FROM base AS deps
+COPY package.json pnpm-workspace.yaml turbo.json ./
+COPY apps/web/package.json apps/web/
+COPY apps/worker/package.json apps/worker/
+COPY packages/sdk-js/package.json packages/sdk-js/
+COPY packages/cli/package.json packages/cli/
+RUN pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+
+FROM base AS builder
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN pnpm --filter @hook-relay/web build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /app/apps/web/.next/standalone ./
+COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=builder /app/apps/web/public ./apps/web/public 2>/dev/null || true
+EXPOSE 3000
+CMD ["node", "apps/web/server.js"]

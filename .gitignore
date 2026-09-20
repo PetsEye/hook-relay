@@ -1,0 +1,16 @@
+node_modules/
+.next/
+dist/
+build/
+out/
+.turbo/
+*.log
+.DS_Store
+.env
+.env*.local
+!apps/web/.env.example
+!apps/worker/.env.example
+coverage/
+.playwright/
+test-results/
+railway/
