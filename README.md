@@ -2,16 +2,36 @@
 
 Self-hostable webhook ingestion, routing and replay: receive → verify → queue → transform → deliver with retries, live tail and replay.
 
-> Scaffold status: monorepo + Docker + CI are live. Pipeline milestones (persist → queue → worker → dashboard → SDK/CLI) are stubbed and tracked below.
+> Status: ingest pipeline is live (HMAC verify → rate-limit → idempotency → Postgres → BullMQ). Worker delivery, dashboard and transforms are next.
 
 ## Quickstart
 
 ```bash
 cp apps/web/.env.example apps/web/.env
-docker compose -f infra/docker-compose.yml up --build
+docker compose -f infra/docker-compose.yml up -d postgres redis
+pnpm install
+pnpm --filter @hook-relay/web db:migrate
+pnpm seed   # prints a signed curl for the demo source
 # web → http://localhost:3000
-curl -X POST localhost:3000/api/ingest/demo -H 'content-type: application/json' -d '{"hello":"world"}'
 curl localhost:3000/api/health
+```
+
+Signed ingest (unsigned requests get `401`; `pnpm seed` prints a ready-to-paste example):
+
+```bash
+curl -X POST localhost:3000/api/ingest/demo \
+  -H 'content-type: application/json' \
+  -H 'x-hookrelay-signature: sha256=<hex>' \
+  -H 'idempotency-key: my-key-1' \
+  -d '{"hello":"world"}'
+# repeat with the same idempotency-key → 200 {"deduped":true, ...}, no duplicate delivery
+```
+
+Signatures are HMAC-SHA256 of the raw body (`hookrelay-js`):
+
+```ts
+import { sign } from "hookrelay-js";
+await sign(SECRET, rawBody); // → "sha256=…"
 ```
 
 Local dev without Docker:
@@ -38,10 +58,10 @@ flowchart LR
 ## Roadmap
 
 - [x] Monorepo, Docker Compose, Railway Dockerfiles, CI
-- [ ] Postgres persistence + idempotency + HMAC verify
+- [x] Postgres persistence + idempotency + HMAC verify + rate-limit + BullMQ enqueue
 - [ ] BullMQ worker: retries, DLQ, transforms
 - [ ] Dashboard: events, delivery timeline, replay, charts
-- [ ] SDK (`hookrelay-js`) + CLI + load-test results + demo GIF
+- [ ] CLI + load-test results + demo GIF
 
 ## Security
 

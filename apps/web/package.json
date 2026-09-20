@@ -10,11 +10,13 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx ./lib/db/migrate.ts"
+    "db:migrate": "tsx ./lib/db/migrate.ts",
+    "db:seed": "tsx ./lib/db/seed.ts"
   },
   "dependencies": {
     "bullmq": "^5.12.0",
     "drizzle-orm": "^0.36.4",
+    "hookrelay-js": "workspace:*",
     "ioredis": "^5.4.1",
     "next": "14.2.18",
     "pg": "^8.13.1",

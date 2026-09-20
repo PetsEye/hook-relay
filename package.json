@@ -15,7 +15,7 @@
     "test": "turbo run test",
     "db:generate": "turbo run db:generate --filter=@hook-relay/web",
     "db:migrate": "turbo run db:migrate --filter=@hook-relay/web",
-    "seed": "node scripts/seed.mjs",
+    "seed": "pnpm --filter @hook-relay/web db:seed",
     "load:test": "node scripts/load-test.mjs"
   },
   "devDependencies": {
