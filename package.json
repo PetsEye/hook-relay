@@ -13,6 +13,7 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
+    "e2e": "node scripts/e2e.mjs",
     "db:generate": "turbo run db:generate --filter=@hook-relay/web",
     "db:migrate": "turbo run db:migrate --filter=@hook-relay/web",
     "seed": "pnpm --filter @hook-relay/web db:seed",

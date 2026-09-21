@@ -10,7 +10,13 @@ export const MAX_RETRIES = 5;
 /** Total delivery attempts = initial + MAX_RETRIES. */
 export const MAX_ATTEMPTS = MAX_RETRIES + 1;
 export const DELIVERY_TIMEOUT_MS = Number(process.env.DELIVERY_TIMEOUT_MS ?? 10_000);
-export const RETRY_DELAYS_SEC = [60, 300, 900, 3600, 21_600] as const;
+/** 1m, 5m, 15m, 1h, 6h — overridable via `RETRY_DELAYS_SEC=10,20,...` for tests/E2E. */
+export const RETRY_DELAYS_SEC: readonly number[] = (() => {
+  const raw = process.env.RETRY_DELAYS_SEC;
+  if (!raw) return [60, 300, 900, 3600, 21_600];
+  const parsed = raw.split(",").map((s) => Number(s.trim())).filter((n) => Number.isFinite(n) && n >= 0);
+  return parsed.length > 0 ? parsed : [60, 300, 900, 3600, 21_600];
+})();
 
 export interface DeliverJobData {
   deliveryId: string;
