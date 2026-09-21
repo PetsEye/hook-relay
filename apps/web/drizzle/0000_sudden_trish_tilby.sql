@@ -34,6 +34,15 @@ CREATE TABLE IF NOT EXISTS "sources" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "transforms" (
+	"id" text PRIMARY KEY NOT NULL,
+	"endpoint_id" text NOT NULL,
+	"version" integer DEFAULT 1 NOT NULL,
+	"code" text NOT NULL,
+	"active" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "workspaces" (
 	"id" text PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
@@ -70,7 +79,14 @@ EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
 --> statement-breakpoint
+DO $$ BEGIN
+ ALTER TABLE "transforms" ADD CONSTRAINT "transforms_endpoint_id_endpoints_id_fk" FOREIGN KEY ("endpoint_id") REFERENCES "public"."endpoints"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "deliveries_status_idx" ON "deliveries" USING btree ("status");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "deliveries_event_idx" ON "deliveries" USING btree ("event_id");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "events_source_idempotency_uidx" ON "events" USING btree ("source_id","idempotency_key");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "events_source_created_idx" ON "events" USING btree ("source_id","created_at");
+CREATE INDEX IF NOT EXISTS "events_source_created_idx" ON "events" USING btree ("source_id","created_at");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "transforms_endpoint_version_uidx" ON "transforms" USING btree ("endpoint_id","version");

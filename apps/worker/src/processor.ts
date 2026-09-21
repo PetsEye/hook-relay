@@ -4,6 +4,7 @@ import type { Job } from "bullmq";
 import { getDb } from "./db.js";
 import { publishHub } from "./realtime.js";
 import { deliveries, endpoints, events, sources, type DeliveryStatus } from "./schema.js";
+import { applyTransform, getActiveTransform } from "./transform.js";
 
 export const MAX_RETRIES = 5;
 /** Total delivery attempts = initial + MAX_RETRIES. */
@@ -113,7 +114,9 @@ export async function processDeliveryJob(job: Job<DeliverJobData>, ctx: ProcessC
     return `delivery ${deliveryId} already ${delivery.status}, skipping`;
   }
 
-  const body = JSON.stringify(event.payload ?? {});
+  const transform = await getActiveTransform(endpoint.id);
+  const applied = applyTransform(transform, event.payload ?? {});
+  const body = JSON.stringify(applied.body);
   const result = await attempt(endpoint.url, body, source.signingSecret);
 
   const attempts = delivery.attempts + 1;

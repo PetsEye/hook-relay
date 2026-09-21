@@ -1,4 +1,4 @@
-import { index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const workspaces = pgTable("workspaces", {
   id: text("id").primaryKey(),
@@ -24,6 +24,24 @@ export const endpoints = pgTable("endpoints", {
   url: text("url").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+/** Per-endpoint JS transform. The worker compiles only `transforms` marked
+ *  active=true; `version` increments on every edit for auditability. */
+export const transforms = pgTable(
+  "transforms",
+  {
+    id: text("id").primaryKey(),
+    endpointId: text("endpoint_id")
+      .notNull()
+      .references(() => endpoints.id, { onDelete: "cascade" }),
+    version: integer("version").notNull().default(1),
+    /** Function body: `return { ...event, added: true }` — `event` is in scope. */
+    code: text("code").notNull(),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [uniqueIndex("transforms_endpoint_version_uidx").on(t.endpointId, t.version)],
+);
 
 export const events = pgTable(
   "events",
