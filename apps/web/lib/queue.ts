@@ -26,16 +26,23 @@ export function getDeliveryQueue(): Queue | undefined {
   }
 }
 
-export async function enqueueDelivery(deliveryId: string, eventId: string): Promise<boolean> {
+export async function enqueueDelivery(
+  deliveryId: string,
+  eventId: string,
+  opts: { dedupeByDeliveryId?: boolean } = {},
+): Promise<boolean> {
   const q = getDeliveryQueue();
   if (!q) return false;
+  const { dedupeByDeliveryId = true } = opts;
   try {
-    // jobId = deliveryId gives queue-level dedupe for free.
+    // jobId = deliveryId gives queue-level dedupe for free; replays pass a fresh key
+    // so BullMQ doesn't silently no-op against a retained completed job.
     await q.add(
       "deliver",
       { deliveryId, eventId },
       {
-        jobId: deliveryId,
+        // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+        jobId: dedupeByDeliveryId ? deliveryId : `${deliveryId}:replay:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         attempts: MAX_DELIVERY_ATTEMPTS,
         // Delay is decided by the worker's backoffStrategy (1m/5m/15m/1h/6h).
         backoff: { type: "custom" },
