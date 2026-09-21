@@ -52,6 +52,34 @@ RETRY_DELAYS_SEC=2,2,2,2,2 pnpm dev   # web + worker with fast retries
 pnpm e2e                              # ingest → deliver → retry → replay → success
 ```
 
+## Deploy (Railway)
+
+Four services, all built from this repo (`pnpm` + Turbo monorepo, two Dockerfiles):
+
+| Service | Source | Notes |
+|---|---|---|
+| web | `Dockerfile.web` | Next.js standalone; `/api/health` healthcheck; **runs Drizzle migrations on boot** (`entrypoint.sh`) |
+| worker | `Dockerfile.worker` | BullMQ consumer; process restart only |
+| Postgres | Railway plugin / image `postgres:16` | |
+| Redis | Railway plugin / image `redis:7` | |
+
+Checklist inside the Railway dashboard:
+
+1. New Project → Deploy from repo `PetsEye/hook-relay` (two services: **web**, **worker**)
+2. Add Postgres + Redis (plugins) to the project
+3. On both services set:
+   - `DATABASE_URL = ${{Postgres.DATABASE_URL}}`
+   - `REDIS_URL = ${{Redis.REDIS_URL}}`
+4. On web only: `SEED_DEMO=true` (boot-seeds a demo source/endpoint so the dashboard is alive)
+5. Points → generate a public domain → use it as your hub URL for the CLI/SDK
+6. Optional (worker): `RETRY_DELAYS_SEC`, `WORKER_CONCURRENCY`, `DELIVERY_TIMEOUT_MS`
+
+Local one-command parity:
+
+```bash
+docker compose -f infra/docker-compose.yml up -d --build   # web :3000 (migrates+seeds on boot), worker, postgres, redis
+```
+
 ## Load test
 
 ```bash

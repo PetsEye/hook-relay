@@ -1,8 +1,14 @@
 # Railway all-in-one deploy (Option 2).
 # Create two services from this repo:
 #   1. web    → Dockerfile.web    (+ Postgres + Redis plugins, healthcheck /api/health)
-#   2. worker → Dockerfile.worker (+ same plugins)
-# Set DATABASE_URL / REDIS_URL / AUTH_SECRET on both services.
+#   2. worker → Dockerfile.worker (+ same plugins, NO http healthcheck; process restart only)
+# Env on both services (Railway references keep them single-source):
+#   DATABASE_URL=${{Postgres.DATABASE_URL}}
+#   REDIS_URL=${{Redis.REDIS_URL}}
+#   SEED_DEMO=true        (web only, boot seeds demo source/endpoint)
+#   RETRY_DELAYS_SEC=...  (worker only, default 60,300,900,3600,21600)
+# Note: this file configures the WEB service; in the Railway dashboard point the
+# worker service at Dockerfile.worker and leave its deploy settings default.
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": { "builder": "DOCKERFILE", "dockerfilePath": "Dockerfile.web" },
