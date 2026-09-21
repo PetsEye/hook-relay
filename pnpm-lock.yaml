@@ -272,7 +272,14 @@ importers:
         version: 2.1.9(@types/node@26.6.2)
 
   packages/cli:
+    dependencies:
+      hookrelay-js:
+        specifier: workspace:*
+        version: link:../sdk-js
     devDependencies:
+      '@types/node':
+        specifier: ^26.6.2
+        version: 26.6.2
       tsx:
         specifier: ^4.19.1
         version: 4.23.13
