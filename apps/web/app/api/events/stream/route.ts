@@ -1,16 +1,48 @@
-// SSE live-tail stub. Next milestone streams persisted events/deliveries from Postgres.
-export const dynamic = "force-dynamic";
+import { addHubListener, type HubEvent } from "@/lib/realtime";
 
-export async function GET() {
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+/** GET /api/events/stream — SSE live tail backed by Postgres LISTEN/NOTIFY. */
+export async function GET(req: Request) {
+  const enc = new TextEncoder();
+  let cleanup: (() => void) | undefined;
+
   const stream = new ReadableStream({
-    start(controller) {
-      const enc = new TextEncoder();
+    async start(controller) {
+      let closed = false;
+      const send = (event: string, data: unknown) => {
+        if (closed) return;
+        try {
+          controller.enqueue(enc.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+        } catch {
+          closed = true;
+        }
+      };
+
       controller.enqueue(enc.encode(`event: ready\ndata: {"ok":true}\n\n`));
-      const timer = setInterval(() => {
-        controller.enqueue(enc.encode(`event: ping\ndata: {"t":${Date.now()}}\n\n`));
-      }, 15_000);
-      // Best-effort cleanup; the runtime closes the stream on disconnect.
-      (controller as unknown as { _timer?: unknown })._timer = timer;
+      send("ready", { ok: true });
+
+      const unsubscribe = await addHubListener((event: HubEvent) => send("hook", event));
+      const ping = setInterval(() => send("ping", { t: Date.now() }), 15_000);
+
+      const close = () => {
+        if (closed) return;
+        closed = true;
+        clearInterval(ping);
+        unsubscribe();
+        try {
+          controller.close();
+        } catch {
+          // already closed
+        }
+      };
+
+      cleanup = close;
+      req.signal.addEventListener("abort", close);
+    },
+    cancel() {
+      cleanup?.();
     },
   });
 
@@ -19,6 +51,7 @@ export async function GET() {
       "content-type": "text/event-stream",
       "cache-control": "no-cache, no-transform",
       connection: "keep-alive",
+      "x-accel-buffering": "no",
     },
   });
 }

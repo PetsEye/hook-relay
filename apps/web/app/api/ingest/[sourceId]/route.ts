@@ -7,6 +7,7 @@ import { getDb } from "@/lib/db/client";
 import { deliveries, endpoints, events, sources } from "@/lib/db/schema";
 import { env } from "@/lib/env";
 import { getIdempotencyKey, getSignature, isPostgresUniqueViolation, isTooLarge } from "@/lib/ingest";
+import { publishHub, truncateForNotify } from "@/lib/realtime";
 import { enqueueDelivery } from "@/lib/queue";
 import { checkRateLimit } from "@/lib/ratelimit";
 
@@ -99,6 +100,19 @@ export async function POST(req: Request, ctx: { params: { sourceId: string } }) 
       return { deliveryId, endpointId: t.id, queued };
     }),
   );
+
+  try {
+    const payloadPreview = truncateForNotify(JSON.stringify(payload ?? {}), 2000);
+    await publishHub({
+      type: "event.created",
+      eventId,
+      sourceId,
+      payloadPreview,
+      createdAt: new Date().toISOString(),
+    });
+  } catch {
+    // Realtime is best-effort; ingest receipts are authoritative.
+  }
 
   return NextResponse.json({ ok: true, deduped: false, eventId, deliveries: receipts }, { status: 202 });
 }

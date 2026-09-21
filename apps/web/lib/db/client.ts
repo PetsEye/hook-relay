@@ -28,3 +28,4 @@ export function getDb(): NodePgDatabase<typeof schema> {
 }
 
 export type Db = ReturnType<typeof getDb>;
+export { getPool };

@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { eq } from "drizzle-orm";
 import type { Job } from "bullmq";
 import { getDb } from "./db.js";
+import { publishHub } from "./realtime.js";
 import { deliveries, endpoints, events, sources, type DeliveryStatus } from "./schema.js";
 
 export const MAX_RETRIES = 5;
@@ -129,6 +130,15 @@ export async function processDeliveryJob(job: Job<DeliverJobData>, ctx: ProcessC
         nextRetryAt: null,
       })
       .where(eq(deliveries.id, deliveryId));
+    void publishHub({
+      type: "delivery.updated",
+      deliveryId,
+      eventId,
+      status: "success",
+      attempts,
+      latencyMs: result.latencyMs,
+      responseCode: result.responseCode,
+    });
     return `delivered ${deliveryId} in ${result.latencyMs}ms (HTTP ${result.responseCode})`;
   }
 
@@ -145,6 +155,15 @@ export async function processDeliveryJob(job: Job<DeliverJobData>, ctx: ProcessC
       nextRetryAt,
     })
     .where(eq(deliveries.id, deliveryId));
+  void publishHub({
+    type: "delivery.updated",
+    deliveryId,
+    eventId,
+    status,
+    attempts,
+    latencyMs: result.latencyMs,
+    responseCode: result.responseCode,
+  });
 
   if (!nextRetryAt) {
     console.error(`[worker] delivery ${deliveryId} moved to DLQ after ${attempts} attempts: ${result.error}`);
